@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PACNET // Provisional Authority and Civilian Network</title>
+  <style>
+    :root {
+      --bg: #07110b;
+      --bg-2: #0c1b12;
+      --panel: rgba(8, 24, 15, 0.92);
+      --panel-2: rgba(10, 30, 18, 0.95);
+      --line: rgba(88, 255, 151, 0.18);
+      --text: #8dffb0;
+      --text-dim: #68d38c;
+      --text-faint: #438f5c;
+      --alert: #c6ff8a;
+      --danger: #ff7f7f;
+      --shadow: 0 0 25px rgba(67, 255, 125, 0.15);
+      --font: "Courier New", Courier, monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top, rgba(24, 64, 40, 0.35), transparent 35%),
+        linear-gradient(180deg, #020604 0%, var(--bg) 50%, #020604 100%);
+      color: var(--text);
+      font-family: var(--font);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        repeating-linear-gradient(
+          180deg,
+          rgba(140, 255, 180, 0.02) 0px,
+          rgba(140, 255, 180, 0.02) 2px,
+          rgba(0, 0, 0, 0.05) 3px,
+          rgba(0, 0, 0, 0.05) 4px
+        );
+      mix-blend-mode: screen;
+      opacity: 0.45;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.85);
+    }
+
+    .hidden { display: none !important; }
+
+    .screen {
+      min-height: 100vh;
+      width: 100%;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .frame {
+      width: min(1200px, 100%);
+      min-height: 78vh;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(8, 26, 16, 0.96), rgba(5, 15, 10, 0.96));
+      box-shadow: var(--shadow), inset 0 0 30px rgba(65, 255, 128, 0.05);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .frame::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(160,255,200,0.05), transparent 10%, transparent 90%, rgba(160,255,200,0.03));
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(12, 33, 21, 0.9);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+
+    .boot-wrap,
+    .login-wrap,
+    .game-wrap {
+      width: 100%;
+      min-height: calc(78vh - 50px);
+    }
+
+    .boot-console {
+      padding: 24px;
+      font-size: 0.95rem;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      min-height: calc(78vh - 50px);
+    }
+
+    .cursor::after {
+      content: "_";
+      display: inline-block;
+      margin-left: 3px;
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+
+    .login-shell,
+    .hack-shell {
+      display: grid;
+      place-items: center;
+      min-height: calc(78vh - 50px);
+      padding: 32px;
+    }
+
+    .login-panel,
+    .hack-panel {
+      width: min(560px, 100%);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 28px;
+      box-shadow: inset 0 0 18px rgba(67, 255, 125, 0.05);
+    }
+
+    .login-title,
+    .hack-title {
+      margin: 0 0 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      font-size: 1.2rem;
+    }
+
+    .subtle {
+      color: var(--text-dim);
+      font-size: 0.93rem;
+      line-height: 1.6;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--text-dim);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    input {
+      width: 100%;
+      background: #06100b;
+      color: var(--text);
+      border: 1px solid var(--line);
+      padding: 12px 14px;
+      font: inherit;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: rgba(111, 255, 160, 0.45);
+      box-shadow: 0 0 0 1px rgba(111, 255, 160, 0.15);
+    }
+
+    button {
+      background: #0d1f15;
+      color: var(--text);
+      border: 1px solid var(--line);
+      padding: 12px 16px;
+      font: inherit;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    button:hover {
+      background: #132b1d;
+      border-color: rgba(111, 255, 160, 0.35);
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .status {
+      min-height: 24px;
+      color: var(--alert);
+      margin-top: 8px;
+    }
+
+    .status.error { color: var(--danger); }
+
+    .desktop {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      min-height: calc(78vh - 50px);
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--line);
+      background: rgba(7, 19, 12, 0.98);
+      padding: 18px;
+    }
+
+    .brand {
+      border: 1px solid var(--line);
+      padding: 14px;
+      margin-bottom: 16px;
+      background: rgba(13, 35, 22, 0.7);
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+    }
+
+    .brand p {
+      margin: 8px 0 0;
+      color: var(--text-dim);
+      font-size: 0.86rem;
+      line-height: 1.5;
+    }
+
+    .tree,
+    .file-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .tree-group-title {
+      margin: 18px 0 8px;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      letter-spacing: 0.15em;
+    }
+
+    .tree button,
+    .file-list button,
+    .utility button {
+      width: 100%;
+      text-align: left;
+    }
+
+    .content {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-width: 0;
+    }
+
+    .content-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      padding: 14px 18px;
+      background: rgba(9, 24, 15, 0.92);
+    }
+
+    .content-header h2 {
+      margin: 0;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+    }
+
+    .content-body {
+      padding: 18px;
+      overflow: auto;
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+
+    .card,
+    .reader,
+    .grid-card {
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      padding: 18px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    .grid-card h3,
+    .reader h3,
+    .card h3 {
+      margin: 0 0 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 0.95rem;
+    }
+
+    .meta {
+      font-size: 0.8rem;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 10px;
+    }
+
+    .reader pre {
+      margin: 0;
+      white-space: pre-wrap;
+      font-family: var(--font);
+      line-height: 1.7;
+      color: var(--text);
+    }
+
+    .small {
+      font-size: 0.88rem;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    .hack-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(60px, 1fr));
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    .hack-code {
+      text-align: center;
+      padding: 14px 8px;
+      font-size: 1.1rem;
+    }
+
+    .utility {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .footer-note {
+      color: var(--text-faint);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    @media (max-width: 920px) {
+      .desktop {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+      }
+    }
+  </style>
+</head>
+<body>
+  <section class="screen">
+    <div class="frame">
+      <div class="topbar">
+        <span>PACNET // PROVISIONAL AUTHORITY AND CIVILIAN NETWORK</span>
+        <span id="clock">SYSTEM TIME --:--:--</span>
+      </div>
+
+      <div id="bootScreen" class="boot-wrap">
+        <div id="bootConsole" class="boot-console cursor"></div>
+      </div>
+
+      <div id="loginScreen" class="login-wrap hidden">
+        <div class="login-shell">
+          <div class="login-panel">
+            <h2 class="login-title">PACNET Access Gateway</h2>
+            <p class="subtle">
+              Post-collapse civil access terminal established by the Provisional Authority.
+              Surviving infrastructure remains unstable. Authorized users may log in directly.
+              Civilian visitors may proceed through a recovery challenge to gain limited archive access.
+            </p>
+            <div class="form-grid">
+              <div>
+                <label for="username">User ID</label>
+                <input id="username" type="text" placeholder="ENTER USER ID" />
+              </div>
+              <div>
+                <label for="password">Passphrase</label>
+                <input id="password" type="password" placeholder="ENTER PASSPHRASE" />
+              </div>
+              <div class="row">
+                <button id="loginBtn">Login</button>
+                <button id="hackBtn" type="button">Bypass Security</button>
+              </div>
+              <div id="loginStatus" class="status"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="hackScreen" class="hidden">
+        <div class="hack-shell">
+          <div class="hack-panel">
+            <h2 class="hack-title">PACNET // Recovery Override</h2>
+            <p class="subtle">
+              Select the valid four-character recovery hash. You have <span id="attemptsLeft">4</span> attempts.
+              A clue will tell you how many characters are in the correct position.
+            </p>
+            <div id="hackGrid" class="hack-grid"></div>
+            <div id="hackStatus" class="status"></div>
+            <div class="row">
+              <button id="backToLoginBtn" type="button">Return to Login</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="terminalScreen" class="game-wrap hidden">
+        <div class="desktop">
+          <aside class="sidebar">
+            <div class="brand">
+              <h1>PACNET</h1>
+              <p>
+                Civil archive node for the Chernarus territory. Partial infrastructure remains intact.
+                Public records, notices, and lore files are available to approved users.
+              </p>
+            </div>
+
+            <div class="tree-group-title">Directories</div>
+            <div class="tree">
+              <button data-folder="overview">> SYSTEM OVERVIEW</button>
+              <button data-folder="lore">> LORE ARCHIVE</button>
+              <button data-folder="factions">> FACTION REGISTRY</button>
+              <button data-folder="settlements">> SETTLEMENT REGISTRY</button>
+              <button data-folder="notice">> NOTICE BOARD</button>
+              <button data-folder="public">> PUBLIC REGISTRY</button>
+              <button data-folder="security">> SECURITY LOGS</button>
+            </div>
+
+            <div class="tree-group-title">Utilities</div>
+            <div class="utility">
+              <button id="rebootBtn" type="button">Reboot Terminal</button>
+              <button id="logoutBtn" type="button">Log Out</button>
+            </div>
+          </aside>
+
+          <main class="content">
+            <div class="content-header">
+              <h2 id="folderTitle">System Overview</h2>
+              <div class="footer-note" id="pathLabel">ROOT / SYSTEM OVERVIEW</div>
+            </div>
+            <div class="content-body" id="contentBody"></div>
+          </main>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const bootLines = [
+      "INITIALIZING PACNET NODE // CHERNARUS REGION",
+      "CHECKING BACKUP POWER.............OK",
+      "MOUNTING CIVIL ARCHIVE............OK",
+      "VERIFYING LOCAL RECORD INDEX......OK",
+      "SCANNING FOR ACTIVE NETWORK PEERS.ERROR // NO RESPONSE",
+      "LOADING PROVISIONAL AUTHORITY SEALS...OK",
+      "RECOVERING PUBLIC ACCESS MODULE....OK",
+      "WARNING // SOME FILES ARE INCOMPLETE OR CORRUPTED",
+      "WARNING // EXTERNAL COMMUNICATIONS UNAVAILABLE",
+      "ESTABLISHING LIMITED TERMINAL SESSION",
+      "WELCOME TO PACNET"
+    ];
+
+    const folderData = {
+      overview: {
+        title: "System Overview",
+        path: "ROOT / SYSTEM OVERVIEW",
+        render() {
+          return `
+            <div class="card">
+              <h3>PACNET // Civil Access Summary</h3>
+              <div class="small">
+                The Provisional Authority and Civilian Network was established in the aftermath of the collapse to preserve a fragile structure of law, communication, and record-keeping. Though the Provisional Authority now struggles to project power across Chernarus, PACNET terminals still serve as islands of order in a broken land.
+              </div>
+            </div>
+            <div class="grid">
+              <div class="grid-card">
+                <h3>Purpose</h3>
+                <div class="small">Preserve settlement records, faction notices, survivor registrations, and archived reports concerning the outbreak and its aftermath.</div>
+              </div>
+              <div class="grid-card">
+                <h3>Status</h3>
+                <div class="small">Network degraded. Public files accessible. Many military and research records remain classified, damaged, or missing.</div>
+              </div>
+              <div class="grid-card">
+                <h3>Jurisdiction</h3>
+                <div class="small">Chernarus Territory // provisional civil oversight only. Enforcement authority varies by region.</div>
+              </div>
+            </div>
+            <div class="reader">
+              <h3>Available Directories</h3>
+              <pre>LORE ARCHIVE
+FACTION REGISTRY
+SETTLEMENT REGISTRY
+NOTICE BOARD
+PUBLIC REGISTRY
+SECURITY LOGS</pre>
+            </div>
+          `;
+        }
+      },
+      lore: {
+        title: "Lore Archive",
+        path: "ROOT / LORE ARCHIVE",
+        files: [
+          {
+            name: "OUTBREAK_OVERVIEW.txt",
+            meta: "Recovered Public Briefing",
+            text: `The infection did not arrive as rumor first. It arrived as confusion.
+
+What began as isolated medical irregularities became a pattern of fever, delirium, violent episodes, and catastrophic systemic collapse. In the early days, the public was told to remain calm. Local authorities described the crisis as a severe biological event under containment.
+
+Containment failed.
+
+Chernarus suffered infrastructure loss, mass civilian displacement, and the rapid breakdown of supply and communication networks. The dead did not remain still. The infected did not remain human for long.`
+          },
+          {
+            name: "ORIGIN_THEORY.txt",
+            meta: "Restricted Summary // Sanitized Copy",
+            text: `Official PACNET public records avoid assigning final blame. Unofficial survivor testimony speaks of laboratory secrecy, quarantined transport routes, and the quiet disappearance of entire teams.
+
+Some believe the infection began as a failed biomedical initiative. Others insist it was a mutation carried through contaminated blood, treatment programs, or rushed emergency research.
+
+What matters now is this: whatever the infection was, it spread faster than truth.`
+          },
+          {
+            name: "THE_COLLAPSE_OF_ORDER.txt",
+            meta: "Civilian Archive",
+            text: `As central authority fractured, surviving officials, civil workers, and remnants of the old state assembled emergency networks to preserve what remained. PACNET was one such effort: a terminal-based archive intended to keep records alive even where governments could not.
+
+Its existence is proof of two things:
+1. Somebody tried to keep civilization standing.
+2. They were already losing when this system came online.`
+          }
+        ]
+      },
+      factions: {
+        title: "Faction Registry",
+        path: "ROOT / FACTION REGISTRY",
+        files: [
+          {
+            name: "PROVISIONAL_AUTHORITY.reg",
+            meta: "Recognized Government Remnant",
+            text: `The Provisional Authority claims continuity with the pre-collapse state. It maintains records, issues decrees, oversees select checkpoints, and attempts to legitimize surviving settlements through registration.
+
+Public Image: Law, order, continuity.
+Reality: Understaffed, overstretched, and no longer able to dominate the territory it claims.`
+          },
+          {
+            name: "LOE_PHARMACEUTICALS.reg",
+            meta: "Licensed Medical-Industrial Entity",
+            text: `LOE Pharmaceuticals presents itself as a vital medical and research power operating where conventional systems failed. Its caravans move medicine, equipment, and trained specialists between enclaves.
+
+Public Image: Recovery, medicine, scientific discipline.
+Field Notes: Access to their internal operations remains limited. Their influence often exceeds their declared mandate.`
+          },
+          {
+            name: "THE_PRIDE.reg",
+            meta: "Hostile Raider Confederation",
+            text: `The Pride is among the most organized and feared hostile groups in Chernarus. Unlike common bandits, they display discipline, hierarchy, and a taste for spectacle. Their attacks are often brutal, deliberate, and intended to terrify survivors into submission.
+
+Threat Level: Severe.
+Recommended Action: Avoid isolated routes. Travel in numbers. Report sightings immediately.`
+          },
+          {
+            name: "THE_TRADE_AUTHORITY.reg",
+            meta: "Commercial Power Bloc",
+            text: `The Trade Authority controls routes, tariffs, brokered exchanges, and access to large-scale trade. It thrives where scarcity has made commerce as powerful as armies.
+
+Public Image: Stability through trade.
+Operational Reality: Every road, market, and deal carries a price.`
+          }
+        ]
+      },
+      settlements: {
+        title: "Settlement Registry",
+        path: "ROOT / SETTLEMENT REGISTRY",
+        files: [
+          {
+            name: "NOVODMITROVSK_REGISTER.txt",
+            meta: "Example Settlement Entry",
+            text: `Settlement Name: Novodmitrovsk Exchange
+Status: Registered
+Control: Mixed Civilian / Trade Authority Influence
+Summary: A major urban survivor hub built around secured blocks, salvage teams, and protected market access.
+Needs: Medical stock, generators, perimeter labor.`
+          },
+          {
+            name: "GREEN_MOUNTAIN_OUTPOST.txt",
+            meta: "Keep this as mY Example Settlement Entry",
+            text: `Settlement Name: Green Mountain Outpost
+Status: Conditional Registration
+Control: Local Militia Alignment
+Summary: Elevated signal outpost and refuge for travelers. Limited capacity but strategically valuable.
+Needs: Ammunition, radio parts, fuel.`
+          }
+        ]
+      },
+      notice: {
+        title: "Notice Board",
+        path: "ROOT / NOTICE BOARD",
+        files: [
+          {
+            name: "BOUNTY_LISTINGS.txt",
+            meta: "Public Notices",
+            text: `ACTIVE BOUNTIES
+
+1. CALLSIGN: MARROW
+Last Known Area: Northern treeline west of Gvozdno
+Charges: Highway robbery, murder of registered couriers, theft of medical cargo
+Known Associates: Two masked riflemen, one driver using a dark utility truck
+Reward: 18,000 credits and trade consideration
+
+2. CALLSIGN: RAGPICKER
+Last Known Area: Industrial yards near Cherno
+Charges: Kidnapping, extortion, black market trafficking of ration cards
+Known Associates: Unknown
+Reward: 9,500 credits`
+          },
+          {
+            name: "JOBS_AND_CONTRACTS.txt",
+            meta: "Civil Requests",
+            text: `- Caravan guards needed for southbound convoy.
+- Mechanic requested for generator repairs in a registered settlement.
+- Medical runner contract available for urgent antibiotic delivery.
+- Scouts requested to verify road safety between inland farmsteads.`
+          }
+        ]
+      },
+      public: {
+        title: "Public Registry",
+        path: "ROOT / PUBLIC REGISTRY",
+        files: [
+          {
+            name: "CHARACTER_RECORD_TEMPLATE.txt",
+            meta: "Registry Format",
+            text: `Name:
+Known Alias:
+Place of Origin:
+Current Allegiance:
+Occupation:
+Known Associations:
+Public Summary:
+Last Confirmed Sighting:`
+          },
+          {
+            name: "PUBLIC_DOSSIER_001.txt",
+            meta: "Example Character Record",
+            text: `Name: Elianora "The Table is Glass" Bauer
+Known Alias: Fondler
+Place of Origin: South of the Border
+Current Allegiance: Any Master
+Occupation: Prostitute
+Known Associations: Trade Authority checkpoint contacts, unnamed villagers
+Public Summary: Known for sucking a golf ball through a straw.`
+          }
+        ]
+      },
+      security: {
+        title: "Security Logs",
+        path: "ROOT / SECURITY LOGS",
+        files: [
+          {
+            name: "AUTH_FAILURE_LOG.txt",
+            meta: "Automated Security Record",
+            text: `Repeated unauthorized access attempts recorded.
+Node integrity remains stable.
+Several recovery override attempts were successful under degraded security conditions.
+Recommendation: Physical supervision required. No staff available.`
+          },
+          {
+            name: "NODE_STATUS.txt",
+            meta: "System Health",
+            text: `Power Source: Auxiliary
+Network Status: Fragmented
+Terminal Integrity: Functional
+Archive Stability: Partial
+Long-Range Uplink: Offline`
+          }
+        ]
+      }
+    };
+
+    const validCredentials = {
+      username: "visitor",
+      password: "chernarus"
+    };
+
+    const bootScreen = document.getElementById("bootScreen");
+    const bootConsole = document.getElementById("bootConsole");
+    const loginScreen = document.getElementById("loginScreen");
+    const hackScreen = document.getElementById("hackScreen");
+    const terminalScreen = document.getElementById("terminalScreen");
+    const loginBtn = document.getElementById("loginBtn");
+    const hackBtn = document.getElementById("hackBtn");
+    const rebootBtn = document.getElementById("rebootBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const backToLoginBtn = document.getElementById("backToLoginBtn");
+    const loginStatus = document.getElementById("loginStatus");
+    const hackGrid = document.getElementById("hackGrid");
+    const hackStatus = document.getElementById("hackStatus");
+    const attemptsLeft = document.getElementById("attemptsLeft");
+    const folderTitle = document.getElementById("folderTitle");
+    const pathLabel = document.getElementById("pathLabel");
+    const contentBody = document.getElementById("contentBody");
+    const clock = document.getElementById("clock");
+
+    let hackCode = "";
+    let hackAttempts = 4;
+
+    function updateClock() {
+      const now = new Date();
+      const stamp = now.toLocaleTimeString([], { hour12: false });
+      clock.textContent = `SYSTEM TIME ${stamp}`;
+    }
+
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function bootSequence() {
+      bootConsole.textContent = "";
+      bootScreen.classList.remove("hidden");
+      loginScreen.classList.add("hidden");
+      hackScreen.classList.add("hidden");
+      terminalScreen.classList.add("hidden");
+
+      for (const line of bootLines) {
+        bootConsole.textContent += line + "\n";
+        bootConsole.scrollTop = bootConsole.scrollHeight;
+        await sleep(350 + Math.random() * 250);
+      }
+
+      await sleep(700);
+      bootScreen.classList.add("hidden");
+      loginScreen.classList.remove("hidden");
+      loginStatus.textContent = "";
+      loginStatus.className = "status";
+    }
+
+    function showHackScreen() {
+      loginScreen.classList.add("hidden");
+      hackScreen.classList.remove("hidden");
+      startHackGame();
+    }
+
+    function showLoginScreen() {
+      hackScreen.classList.add("hidden");
+      loginScreen.classList.remove("hidden");
+      hackStatus.textContent = "";
+      hackStatus.className = "status";
+    }
+
+    function launchTerminal() {
+      loginScreen.classList.add("hidden");
+      hackScreen.classList.add("hidden");
+      terminalScreen.classList.remove("hidden");
+      renderFolder("overview");
+    }
+
+    function renderFolder(key) {
+      const folder = folderData[key];
+      if (!folder) return;
+
+      folderTitle.textContent = folder.title;
+      pathLabel.textContent = folder.path;
+
+      if (typeof folder.render === "function") {
+        contentBody.innerHTML = folder.render();
+        return;
+      }
+
+      contentBody.innerHTML = `
+        <div class="card">
+          <h3>${folder.title}</h3>
+          <div class="small">Select and read archived entries below.</div>
+        </div>
+        <div class="file-list">
+          ${folder.files.map((file, index) => `
+            <button class="file-open" data-folder="${key}" data-index="${index}">> ${file.name}</button>
+          `).join("")}
+        </div>
+        <div class="reader" id="readerPane">
+          <h3>${folder.files[0].name}</h3>
+          <div class="meta">${folder.files[0].meta}</div>
+          <pre>${folder.files[0].text}</pre>
+        </div>
+      `;
+
+      document.querySelectorAll(".file-open").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const file = folderData[btn.dataset.folder].files[Number(btn.dataset.index)];
+          const pane = document.getElementById("readerPane");
+          pane.innerHTML = `
+            <h3>${file.name}</h3>
+            <div class="meta">${file.meta}</div>
+            <pre>${file.text}</pre>
+          `;
+        });
+      });
+    }
+
+    function randomCode() {
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      let result = "";
+      for (let i = 0; i < 4; i++) {
+        result += chars[Math.floor(Math.random() * chars.length)];
+      }
+      return result;
+    }
+
+    function evaluateGuess(guess) {
+      let matches = 0;
+      for (let i = 0; i < guess.length; i++) {
+        if (guess[i] === hackCode[i]) matches++;
+      }
+      return matches;
+    }
+
+    function startHackGame() {
+      hackAttempts = 4;
+      attemptsLeft.textContent = String(hackAttempts);
+      hackStatus.textContent = "";
+      hackStatus.className = "status";
+      hackCode = randomCode();
+
+      const guesses = new Set([hackCode]);
+      while (guesses.size < 8) {
+        guesses.add(randomCode());
+      }
+
+      const options = Array.from(guesses).sort(() => Math.random() - 0.5);
+      hackGrid.innerHTML = "";
+
+      options.forEach(code => {
+        const btn = document.createElement("button");
+        btn.className = "hack-code";
+        btn.textContent = code;
+        btn.type = "button";
+        btn.addEventListener("click", () => {
+          if (code === hackCode) {
+            hackStatus.textContent = `ACCESS GRANTED // Recovery hash ${code} accepted.`;
+            hackStatus.className = "status";
+            setTimeout(launchTerminal, 700);
+            return;
+          }
+
+          hackAttempts -= 1;
+          attemptsLeft.textContent = String(hackAttempts);
+          const correctPositions = evaluateGuess(code);
+          hackStatus.textContent = `INVALID HASH // ${correctPositions} character(s) correctly placed.`;
+          hackStatus.className = "status error";
+          btn.disabled = true;
+          btn.style.opacity = "0.45";
+
+          if (hackAttempts <= 0) {
+            hackStatus.textContent = `OVERRIDE FAILED // Recovery lockout triggered. Correct hash was ${hackCode}.`;
+            hackStatus.className = "status error";
+            setTimeout(startHackGame, 1500);
+          }
+        });
+        hackGrid.appendChild(btn);
+      });
+    }
+
+    loginBtn.addEventListener("click", () => {
+      const username = document.getElementById("username").value.trim().toLowerCase();
+      const password = document.getElementById("password").value.trim().toLowerCase();
+
+      if (username === validCredentials.username && password === validCredentials.password) {
+        loginStatus.textContent = "Credentials accepted. Opening PACNET session...";
+        loginStatus.className = "status";
+        setTimeout(launchTerminal, 500);
+      } else {
+        loginStatus.textContent = "Access denied. Invalid user ID or passphrase.";
+        loginStatus.className = "status error";
+      }
+    });
+
+    hackBtn.addEventListener("click", showHackScreen);
+    backToLoginBtn.addEventListener("click", showLoginScreen);
+    rebootBtn.addEventListener("click", bootSequence);
+    logoutBtn.addEventListener("click", () => {
+      terminalScreen.classList.add("hidden");
+      loginScreen.classList.remove("hidden");
+      loginStatus.textContent = "Session ended.";
+      loginStatus.className = "status";
+    });
+
+    document.querySelectorAll("[data-folder]").forEach(btn => {
+      btn.addEventListener("click", () => renderFolder(btn.dataset.folder));
+    });
+
+    document.getElementById("password").addEventListener("keydown", (event) => {
+      if (event.key === "Enter") loginBtn.click();
+    });
+
+    document.getElementById("username").addEventListener("keydown", (event) => {
+      if (event.key === "Enter") document.getElementById("password").focus();
+    });
+
+    bootSequence();
+  </script>
+</body>
+</html>
